@@ -416,26 +416,12 @@ void UVaRestJsonObject::SetMapFields_bool(const TMap<FString, bool>& Fields)
 
 TArray<float> UVaRestJsonObject::GetNumberArrayField(const FString& FieldName) const
 {
-	TArray<float> NumberArray;
-	if (!JsonObj->HasTypedField<EJson::Array>(FieldName) || FieldName.IsEmpty())
-	{
-		UE_LOG(LogVaRest, Warning, TEXT("%s: No field with name %s of type Array"), *VA_FUNC_LINE, *FieldName);
-		return NumberArray;
-	}
+	return GetTypeArrayField<float>(FieldName);
+}
 
-	const TArray<TSharedPtr<FJsonValue>> JsonArrayValues = JsonObj->GetArrayField(FieldName);
-	for (TArray<TSharedPtr<FJsonValue>>::TConstIterator It(JsonArrayValues); It; ++It)
-	{
-		const auto Value = (*It).Get();
-		if (Value->Type != EJson::Number)
-		{
-			UE_LOG(LogVaRest, Error, TEXT("Not Number element in array with field name %s"), *FieldName);
-		}
-
-		NumberArray.Add((*It)->AsNumber());
-	}
-
-	return NumberArray;
+TArray<int32> UVaRestJsonObject::GetIntegerArrayField(const FString& FieldName) const
+{
+	return GetTypeArrayField<int32>(FieldName);
 }
 
 void UVaRestJsonObject::SetNumberArrayField(const FString& FieldName, const TArray<float>& NumberArray)
@@ -589,11 +575,7 @@ int32 UVaRestJsonObject::DeserializeFromUTF8Bytes(const ANSICHAR* Bytes, int32 S
 	const ANSICHAR* EndByte = Bytes + Size;
 	while (Bytes < EndByte)
 	{
-#if ENGINE_MINOR_VERSION >= 19
 		TCHAR Char = FUtf8Helper::CodepointFromUtf8(Bytes, EndByte - Bytes);
-#else
-		TCHAR Char = FUTF8ToTCHAR_Convert::utf8codepoint(&Bytes);
-#endif
 		if (Char > 0xFFFF)
 		{
 			Char = UNICODE_BOGUS_CHAR_CODEPOINT;

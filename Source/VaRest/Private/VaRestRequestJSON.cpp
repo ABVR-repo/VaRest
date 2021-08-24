@@ -190,6 +190,11 @@ FString UVaRestRequestJSON::GetURL() const
 	return HttpRequest->GetURL();
 }
 
+EVaRestRequestVerb UVaRestRequestJSON::GetVerb() const
+{
+	return RequestVerb;
+}
+
 EVaRestRequestStatus UVaRestRequestJSON::GetStatus() const
 {
 	return EVaRestRequestStatus((uint8)HttpRequest->GetStatus());
@@ -231,13 +236,8 @@ void UVaRestRequestJSON::SetURL(const FString& Url)
 	// Be sure to trim URL because it can break links on iOS
 	FString TrimmedUrl = Url;
 
-#if ENGINE_MINOR_VERSION >= 18
 	TrimmedUrl.TrimStartInline();
 	TrimmedUrl.TrimEndInline();
-#else
-	TrimmedUrl.Trim();
-	TrimmedUrl.TrimTrailing();
-#endif
 
 	HttpRequest->SetURL(TrimmedUrl);
 }
@@ -253,13 +253,8 @@ void UVaRestRequestJSON::ApplyURL(const FString& Url, UVaRestJsonObject*& Result
 	// Be sure to trim URL because it can break links on iOS
 	FString TrimmedUrl = Url;
 
-#if ENGINE_MINOR_VERSION >= 18
 	TrimmedUrl.TrimStartInline();
 	TrimmedUrl.TrimEndInline();
-#else
-	TrimmedUrl.Trim();
-	TrimmedUrl.TrimTrailing();
-#endif
 
 	HttpRequest->SetURL(TrimmedUrl);
 
@@ -433,7 +428,14 @@ void UVaRestRequestJSON::ProcessRequest()
 		// Set Json content
 		HttpRequest->SetContentAsString(OutputString);
 
-		UE_LOG(LogVaRest, Log, TEXT("Request (json): %s %s %sJSON(%s%s%s)JSON"), *HttpRequest->GetVerb(), *HttpRequest->GetURL(), LINE_TERMINATOR, LINE_TERMINATOR, *OutputString, LINE_TERMINATOR);
+		if (UVaRestLibrary::GetVaRestSettings()->bExtendedLog)
+		{
+			UE_LOG(LogVaRest, Log, TEXT("Request (json): %s %s %sJSON(%s%s%s)JSON"), *HttpRequest->GetVerb(), *HttpRequest->GetURL(), LINE_TERMINATOR, LINE_TERMINATOR, *OutputString, LINE_TERMINATOR);
+		}
+		else
+		{
+			UE_LOG(LogVaRest, Log, TEXT("Request (json): %s %s (check bExtendedLog for additional data)"), *HttpRequest->GetVerb(), *HttpRequest->GetURL());
+		}
 
 		break;
 	}
@@ -520,11 +522,11 @@ void UVaRestRequestJSON::OnProcessRequestComplete(FHttpRequestPtr Request, FHttp
 		if (FJsonSerializer::Deserialize(Reader, OutJsonValue))
 		{
 			ResponseJsonValue->SetRootValue(OutJsonValue);
-			ResponseSize = Response->GetContentLength();
 
 			if (ResponseJsonValue->GetType() == EVaJson::Object)
 			{
 				ResponseJsonObj->SetRootObject(ResponseJsonValue->GetRootValue()->AsObject());
+				ResponseSize = Response->GetContentLength();
 			}
 		}
 	}
